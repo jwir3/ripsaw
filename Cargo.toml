@@ -1,0 +1,10 @@
+[package]
+name = "ripsaw"
+version = "0.1.0"
+authors = ["Scott Johnson <jaywir3@gmail.com>"]
+description = "A library and app for generating a cut list for lumber."
+readme = "README.md"
+license-file = "LICENSE.md"
+
+[dependencies]
+  tokesies = { git = "https://github.com/Jeffail/tokesies" }
