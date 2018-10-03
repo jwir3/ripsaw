@@ -1,25 +1,14 @@
 extern crate tokesies;
 
 pub mod numerical;
+pub mod measurements;
 
 use std::collections::HashMap;
 use std::io;
+use std::fmt;
 
 use numerical::FractionalValue;
-
-use tokesies::*;
-
-pub struct XFilter;
-
-impl filters::Filter for XFilter {
-    fn on_char(&self, c: &char) -> (bool, bool) {
-        match *c {
-            'x' => (true, false),
-            'X' => (true, false),
-            _ => (false, false),
-        }
-    }
-}
+use measurements::determine_dimensions_from_spec;
 
 pub fn get_conversion_chart_inches() -> HashMap<FractionalValue, f64> {
     let mut conversion_chart_inches: HashMap<FractionalValue, f64> = HashMap::new();
@@ -58,6 +47,16 @@ pub struct Lumber {
     is_nominal: bool,
 }
 
+impl fmt::Display for Lumber {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}x{}x{}",
+            self.width_inches, self.height_inches, self.length_feet
+        )
+    }
+}
+
 impl Lumber {
     pub fn get_width_in_inches(&self) -> f64 {
         self.width_inches
@@ -94,7 +93,7 @@ impl Lumber {
     }
 
     pub fn create_from_spec(spec: String) -> Lumber {
-        let whl_tuple = Lumber::determine_dimensions_from_spec(&spec);
+        let whl_tuple = determine_dimensions_from_spec(&spec);
 
         Lumber::create_actual(whl_tuple.0, whl_tuple.1, whl_tuple.2)
     }
@@ -115,17 +114,6 @@ impl Lumber {
                 is_nominal: false,
             }
         }
-    }
-
-    fn determine_dimensions_from_spec(spec: &str) -> (f64, f64, f64) {
-        let tokens = FilteredTokenizer::new(XFilter {}, spec).collect::<Vec<Token>>();
-        println!(
-            "{}, {}, {}",
-            tokens.get(0).unwrap().term(),
-            tokens.get(1).unwrap().term(),
-            tokens.get(2).unwrap().term()
-        );
-        (0., 0., 0.)
     }
 
     fn get_nearest_nominal_size_inches(inches: f64) -> Result<f64, io::Error> {
