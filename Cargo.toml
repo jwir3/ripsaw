@@ -6,5 +6,9 @@ description = "A library and app for generating a cut list for lumber."
 readme = "README.md"
 license-file = "LICENSE.md"
 
+[lib]
+name = "ripsaw"
+path = "src/lib.rs"
+
 [dependencies]
   tokesies = { git = "https://github.com/Jeffail/tokesies" }
