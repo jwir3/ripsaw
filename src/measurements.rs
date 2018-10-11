@@ -31,11 +31,11 @@ fn get_from_spec_token(spec_token: &str, desired_unit: Units) -> f64 {
     let mut parse_result: f64;
     let replaced = spec_token.trim().replace("'", "").replace("\"", "");
     let result = replaced.parse();
-    match result {
+
+    parse_result = match result {
         Ok(v) => v,
         Err(e) => panic!("Unable to parse result {} due to {}", replaced, e),
     };
-    parse_result = result.unwrap();
 
     match desired_unit {
         Units::Feet => if spec_token.ends_with("\"") {

@@ -6,6 +6,8 @@ pub mod measurements;
 use std::collections::HashMap;
 use std::io;
 use std::fmt;
+use std::fmt::Write;
+use std::hash::{Hash, Hasher};
 
 use numerical::FractionalValue;
 use measurements::determine_dimensions_from_spec;
@@ -47,6 +49,20 @@ pub struct Lumber {
     is_nominal: bool,
 }
 
+impl PartialEq for Lumber {
+    fn eq(&self, other: &Lumber) -> bool {
+        self.get_identifier_string() == other.get_identifier_string()
+    }
+}
+
+impl Eq for Lumber {}
+
+impl Hash for Lumber {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.get_identifier_string().hash(state);
+    }
+}
+
 impl fmt::Display for Lumber {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -58,6 +74,14 @@ impl fmt::Display for Lumber {
 }
 
 impl Lumber {
+    pub fn get_identifier_string(&self) -> String {
+        let mut result = String::new();
+        write!(&mut result, "{}", self)
+            .expect("Unable to write output to retrieve lumber identifier");
+
+        result
+    }
+
     pub fn get_width_in_inches(&self) -> f64 {
         self.width_inches
     }
@@ -92,8 +116,8 @@ impl Lumber {
         }
     }
 
-    pub fn create_from_spec(spec: String) -> Lumber {
-        let whl_tuple = determine_dimensions_from_spec(&spec);
+    pub fn create_from_spec(spec: &String) -> Lumber {
+        let whl_tuple = determine_dimensions_from_spec(spec);
 
         Lumber::create_actual(whl_tuple.0, whl_tuple.1, whl_tuple.2)
     }
@@ -211,6 +235,62 @@ impl Lumber {
     }
 }
 
+pub struct CutList {
+    required_boards: HashMap<Lumber, i32>,
+}
+
+impl fmt::Display for CutList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Purchase List\n--------\n");
+        for l in self.required_boards.iter() {
+            write!(f, "{} ({})\n", l.0, l.1);
+        }
+
+        Ok(())
+    }
+}
+
+impl CutList {
+    pub fn new(list: Option<Vec<Lumber>>) -> CutList {
+        let mut required_boards: HashMap<Lumber, i32> = HashMap::new();
+        match list {
+            Some(l) => for board in l {
+                let current_count: i32 = if required_boards.contains_key(&board) {
+                    *required_boards.get(&board).unwrap()
+                } else {
+                    0
+                };
+
+                required_boards.insert(board, current_count + 1);
+            },
+            None => (),
+        }
+
+        CutList {
+            required_boards: required_boards,
+        }
+    }
+
+    pub fn add(&mut self, lumber: Lumber) {
+        let current_count: i32 = if self.required_boards.contains_key(&lumber) {
+            *self.required_boards.get(&lumber).unwrap()
+        } else {
+            0
+        };
+
+        self.required_boards.insert(lumber, current_count + 1);
+    }
+
+    pub fn get_num_boards(&self) -> i32 {
+        let mut len = 0;
+        for board_tuple in &self.required_boards {
+            len = len + board_tuple.1;
+        }
+
+        len
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -251,5 +331,25 @@ mod tests {
     fn it_should_throw_an_exception_for_a_board_over_16_feet() {
         let actual_lumber_dim = Lumber::create_actual(2.0, 4.0, 18.0);
         let _nominal_board = actual_lumber_dim.as_nearest_nominal();
+    }
+
+    #[test]
+    fn the_identifier_string_for_a_2x4_should_be_2x4x8() {
+        let two_by_four = Lumber::create_nominal(2.0, 4.0, 8.0);
+        let id_string = two_by_four.get_identifier_string();
+
+        assert_eq!(id_string, "2x4x8");
+    }
+
+    #[test]
+    fn it_should_allow_the_creation_of_a_cutlist_with_a_lumber_list() {
+        let two_by_four = Lumber::create_nominal(2.0, 4.0, 8.0);
+        let one_by_six = Lumber::create_nominal(1.0, 6.0, 8.0);
+        let mut lumber_list: Vec<Lumber> = Vec::new();
+        lumber_list.push(two_by_four);
+        lumber_list.push(one_by_six);
+
+        let cut_list = CutList::new(Some(lumber_list));
+        assert_eq!(cut_list.get_num_boards(), 2);
     }
 }
