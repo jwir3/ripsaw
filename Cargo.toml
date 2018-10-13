@@ -12,3 +12,4 @@ path = "src/lib.rs"
 
 [dependencies]
   tokesies = { git = "https://github.com/Jeffail/tokesies" }
+  config = "0.9"
