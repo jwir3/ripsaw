@@ -42,6 +42,35 @@ pub fn to_actual_size_in_inches(input: f64) -> f64 {
     }
 }
 
+pub struct Settings {
+    blade_width_inches: f64,
+}
+
+impl Settings {
+    pub fn new() -> Settings {
+        Settings {
+            blade_width_inches: 0.125,
+        }
+    }
+
+    pub fn new_from_hashmap(hashmap: HashMap<String, String>) -> Settings {
+        // Default value for cut width is 1/8".
+        let mut blade_width_inches = 0.125;
+        if hashmap.contains_key("blade_width_inches") {
+            let bwi_string = hashmap.get("blade_width_inches").unwrap();
+            blade_width_inches = bwi_string.parse::<f64>().unwrap();
+        }
+
+        Settings {
+            blade_width_inches: blade_width_inches,
+        }
+    }
+
+    pub fn get_blade_width_inches(self) -> f64 {
+        self.blade_width_inches
+    }
+}
+
 pub struct Lumber {
     width_inches: f64,
     height_inches: f64,
@@ -236,6 +265,7 @@ impl Lumber {
 }
 
 pub struct CutList {
+    settings: Settings,
     required_boards: HashMap<Lumber, i32>,
 }
 
@@ -251,22 +281,21 @@ impl fmt::Display for CutList {
 }
 
 impl CutList {
-    pub fn new(list: Option<Vec<Lumber>>) -> CutList {
-        let mut required_boards: HashMap<Lumber, i32> = HashMap::new();
-        match list {
-            Some(l) => for board in l {
-                let current_count: i32 = if required_boards.contains_key(&board) {
-                    *required_boards.get(&board).unwrap()
-                } else {
-                    0
-                };
-
-                required_boards.insert(board, current_count + 1);
-            },
-            None => (),
-        }
+    pub fn new() -> CutList {
+        let settings = Settings::new();
+        let required_boards: HashMap<Lumber, i32> = HashMap::new();
 
         CutList {
+            settings: settings,
+            required_boards: required_boards,
+        }
+    }
+
+    pub fn new_with_settings(settings: Settings) -> CutList {
+        let required_boards: HashMap<Lumber, i32> = HashMap::new();
+
+        CutList {
+            settings: settings,
             required_boards: required_boards,
         }
     }
@@ -342,14 +371,18 @@ mod tests {
     }
 
     #[test]
-    fn it_should_allow_the_creation_of_a_cutlist_with_a_lumber_list() {
-        let two_by_four = Lumber::create_nominal(2.0, 4.0, 8.0);
-        let one_by_six = Lumber::create_nominal(1.0, 6.0, 8.0);
-        let mut lumber_list: Vec<Lumber> = Vec::new();
-        lumber_list.push(two_by_four);
-        lumber_list.push(one_by_six);
+    fn settings_should_return_a_default_blade_width_of_0125in() {
+        let settings = Settings::new();
 
-        let cut_list = CutList::new(Some(lumber_list));
-        assert_eq!(cut_list.get_num_boards(), 2);
+        assert_eq!(settings.get_blade_width_inches(), 0.125);
+    }
+
+    #[test]
+    fn settings_specified_blade_width_should_be_preserved() {
+        let mut hm: HashMap<String, String> = HashMap::new();
+        hm.insert(String::from("blade_width_inches"), String::from(".334"));
+        let settings = Settings::new_from_hashmap(hm);
+
+        assert_eq!(settings.get_blade_width_inches(), 0.334);
     }
 }
